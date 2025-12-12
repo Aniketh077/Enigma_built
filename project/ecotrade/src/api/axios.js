@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL =  import.meta.env.VITE_BACKEND_URL;
+// Default to localhost:5000 if env variable is not set
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -28,21 +29,27 @@ axiosInstance.interceptors.request.use(
 );
 
 // Response interceptor
-// axiosInstance.interceptors.response.use(
-//   (response) => {
-//     console.log(`Response from ${response.config.url}:`, response.status);
-//     return response;
-//   },
-//   (error) => {
-//     console.error('Response interceptor error:', error.response || error);
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    console.error('Response interceptor error:', error.response || error);
     
-//     if (error.response && error.response.status === 401) {
-//       // Handle unauthorized access
-//       localStorage.removeItem('user');
-//       window.location.href = '/login';
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+    if (error.response && error.response.status === 401) {
+      // Handle unauthorized access - clear user data
+      localStorage.removeItem('user');
+      // Only redirect if not already on auth pages
+      if (!window.location.pathname.includes('/role-selection') && 
+          !window.location.pathname.includes('/register') &&
+          !window.location.pathname.includes('/verify-email') &&
+          !window.location.pathname.includes('/forgot-password') &&
+          !window.location.pathname.includes('/reset-password')) {
+        window.location.href = '/role-selection';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default axiosInstance;

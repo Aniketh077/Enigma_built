@@ -14,27 +14,44 @@ const s3 = new S3Client({
 });
 
 
-// File filter function
+// File filter function - supports images, STL files, and documents
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
+  const allowedSTLTypes = /stl/;
+  const allowedDocTypes = /pdf|doc|docx/;
+  
+  const isImage = allowedImageTypes.test(fileExt);
+  const isSTL = allowedSTLTypes.test(fileExt);
+  const isDoc = allowedDocTypes.test(fileExt);
 
-  if (mimetype && extname) {
+  if (isImage || isSTL || isDoc) {
     return cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'), false);
+    cb(new Error('File type not allowed! Only images, STL files, and documents (PDF, DOC, DOCX) are allowed.'), false);
   }
 };
 
-// Configure multer
-const upload = multer({
-  storage: multer.memoryStorage(), // Store file in memory for processing
+// Configure multer with dynamic file size limits
+const createUpload = (maxSize = 5 * 1024 * 1024) => multer({
+  storage: multer.memoryStorage(),
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: maxSize
   }
 });
+
+// Default upload (5MB for images)
+const upload = createUpload(5 * 1024 * 1024);
+
+// Large file upload (150MB for STL files)
+const uploadLarge = createUpload(150 * 1024 * 1024);
+
+// Medium file upload (50MB for extra files)
+const uploadMedium = createUpload(50 * 1024 * 1024);
+
+// Document upload (10MB for NDA)
+const uploadDocument = createUpload(10 * 1024 * 1024);
 
 // Function to upload to S3
 const uploadToS3 = async (file, folder) => {
@@ -89,6 +106,9 @@ const extractS3KeyFromUrl = (url) => {
 
 module.exports = {
   upload,
+  uploadLarge,
+  uploadMedium,
+  uploadDocument,
   uploadToS3,
   deleteFromS3,
   getCloudFrontUrl,

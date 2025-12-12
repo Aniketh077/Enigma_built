@@ -17,23 +17,6 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      // For admin, no email verification required
-      if (user.role === 'admin') {
-        return res.json({
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phoneNumber: user.phoneNumber || '',
-          address: user.address || '',
-          city: user.city || '',
-          state: user.state || '',
-          pincode: user.pincode || '',
-          token: generateToken(user._id),
-          wishlist: user.wishlist || []
-        });
-      }
-
       if (!user.isEmailVerified) {
         return res.status(401).json({ 
           message: 'Please verify your email address before logging in',
@@ -41,18 +24,35 @@ const loginUser = async (req, res) => {
         });
       }
 
+      // Calculate profile completeness for manufacturers
+      let profileCompleteness = 0;
+      if (user.userType === 'MANUFACTURER' || user.userType === 'HYBRID') {
+        let score = 0;
+        if (user.manufacturingTypes && user.manufacturingTypes.length > 0) score += 20;
+        if (user.maxDimensions && (user.maxDimensions.height > 0 || user.maxDimensions.width > 0 || user.maxDimensions.length > 0)) score += 20;
+        if (user.facilityPhotos && user.facilityPhotos.length > 0) score += 15;
+        if (user.primaryMaterials && user.primaryMaterials.length > 0) score += 15;
+        if (user.certifications && user.certifications.length > 0) score += 15;
+        if (user.gstNumber) score += 15;
+        profileCompleteness = score;
+      } else {
+        profileCompleteness = 100; // Buyers don't need profile completion
+      }
+
       return res.json({
         _id: user._id,
-        name: user.name,
+        fullName: user.fullName,
         email: user.email,
-        role: user.role,
+        userType: user.userType,
+        companyName: user.companyName,
         phoneNumber: user.phoneNumber || '',
         address: user.address || '',
         city: user.city || '',
         state: user.state || '',
-        pincode: user.pincode || '',
-        token: generateToken(user._id),
-        wishlist: user.wishlist || []
+        zipCode: user.zipCode || '',
+        country: user.country || 'India',
+        profileCompleteness,
+        token: generateToken(user._id)
       });
     }
 
@@ -66,19 +66,73 @@ const loginUser = async (req, res) => {
 // @desc    Register new user
 // @route   POST /api/auth/register
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const {
+    title,
+    fullName,
+    email,
+    password,
+    confirmPassword,
+    userType,
+    phoneNumber,
+    companyName,
+    website,
+    address,
+    city,
+    state,
+    zipCode,
+    country,
+    gstNumber,
+    // Manufacturer fields
+    manufacturingTypes,
+    companySize,
+    yearsInBusiness,
+    maxDimensions,
+    primaryMaterials,
+    certifications,
+    // Buyer fields
+    industryVertical,
+    annualSpending,
+    procurementTeamSize,
+    preferredLeadTime
+  } = req.body;
 
   try {
     // Input validation
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+    if (!fullName || !email || !password || !userType || !phoneNumber || !companyName || !address || !city || !state || !zipCode) {
+      return res.status(400).json({ message: 'All required fields must be filled' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    // Comprehensive password validation
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+    if (!/[A-Z]/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one uppercase letter' });
+    }
+    if (!/[a-z]/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one lowercase letter' });
+    }
+    if (!/\d/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one number' });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)' });
     }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
     
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
+    }
+
+    // Validate manufacturing types for all user types
+    if (!manufacturingTypes || manufacturingTypes.length === 0) {
+      return res.status(400).json({ message: 'At least one manufacturing type must be selected' });
     }
 
     // Hash password
@@ -89,45 +143,89 @@ const registerUser = async (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    // Determine initial status
+    let status = 'PENDING_VERIFICATION';
+    let manufacturerStatus = 'PENDING_REVIEW';
+    if (userType === 'BUYER') {
+      status = 'PENDING_VERIFICATION';
+    }
+
     // Create user
-    const user = await User.create({
-      name,
+    const userData = {
+      title: title || '',
+      fullName,
       email,
       password: hashedPassword,
-      role: 'user',
+      userType,
+      phoneNumber,
+      companyName,
+      website: website || '',
+      address,
+      city,
+      state,
+      zipCode,
+      country: country || 'India',
+      gstNumber: gstNumber || '',
       isEmailVerified: false,
       emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires
-    });
+      emailVerificationExpires: verificationExpires,
+      status
+    };
+
+    // Add all fields for all user types
+    userData.manufacturingTypes = manufacturingTypes || [];
+    userData.companySize = companySize || '';
+    userData.yearsInBusiness = yearsInBusiness || 0;
+    userData.maxDimensions = maxDimensions || { height: 0, width: 0, length: 0 };
+    userData.primaryMaterials = primaryMaterials || [];
+    userData.certifications = certifications || [];
+    userData.industryVertical = industryVertical || '';
+    userData.annualSpending = annualSpending || '';
+    userData.procurementTeamSize = procurementTeamSize || '';
+    userData.preferredLeadTime = preferredLeadTime || '';
+    
+    // Set manufacturer status only for manufacturers and hybrid
+    if (userType === 'MANUFACTURER' || userType === 'HYBRID') {
+      userData.manufacturerStatus = manufacturerStatus;
+    }
+
+    const user = await User.create(userData);
 
     if (user) {
       // Send verification email
       try {
-        await emailService.sendVerificationEmail(email, verificationToken, name);
+        await emailService.sendVerificationEmail(email, verificationToken, fullName);
         
         res.status(201).json({
           message: 'User registered successfully! Please check your email to verify your account.',
-          requiresVerification: true
+          requiresVerification: true,
+          userId: user._id
         });
       } catch (emailError) {
         console.error('Email sending error:', emailError);
-        // Delete user if email sending fails
-        await User.findByIdAndDelete(user._id);
-        res.status(500).json({ message: 'Registration failed. Please try again.' });
+        // Don't delete user, just log error
+        res.status(201).json({
+          message: 'User registered successfully! Please check your email to verify your account.',
+          requiresVerification: true,
+          userId: user._id,
+          warning: 'Verification email may not have been sent. Please contact support.'
+        });
       }
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error' });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 };
 
 // @desc    Verify email
-// @route   POST /api/auth/verify-email
+// @route   GET /api/auth/verify-email
 const verifyEmail = async (req, res) => {
-  // Get token from query parameter or body
   const token = req.query.token || req.body.token;
 
   try {
@@ -135,7 +233,6 @@ const verifyEmail = async (req, res) => {
       return res.status(400).json({ message: 'Verification token is required' });
     }
 
-    // Find user with valid token
     const user = await User.findOne({
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: Date.now() }
@@ -149,10 +246,18 @@ const verifyEmail = async (req, res) => {
     user.isEmailVerified = true;
     user.emailVerificationToken = null;
     user.emailVerificationExpires = null;
+    
+    // Update status based on user type
+    if (user.userType === 'BUYER') {
+      user.status = 'ACTIVE';
+    } else if (user.userType === 'MANUFACTURER' || user.userType === 'HYBRID') {
+      user.status = 'PENDING_VERIFICATION'; // Still needs profile review
+    }
+    
     await user.save();
 
     try {
-      await emailService.sendWelcomeEmail(user.email, user.name);
+      await emailService.sendWelcomeEmail(user.email, user.fullName);
     } catch (emailError) {
       console.error('Welcome email error:', emailError);
     }
@@ -196,7 +301,7 @@ const resendVerificationEmail = async (req, res) => {
     await user.save();
 
     // Send verification email
-    await emailService.sendVerificationEmail(email, verificationToken, user.name);
+    await emailService.sendVerificationEmail(email, verificationToken, user.fullName);
 
     res.json({
       message: 'Verification email sent successfully!'
@@ -220,7 +325,10 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      // Don't reveal if user exists for security
+      return res.json({
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
     }
 
     // Generate reset token
@@ -232,10 +340,10 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     // Send reset email
-    await emailService.sendPasswordResetEmail(email, resetToken, user.name);
+    await emailService.sendPasswordResetEmail(email, resetToken, user.fullName);
 
     res.json({
-      message: 'Password reset email sent successfully!'
+      message: 'If an account exists with this email, a password reset link has been sent.'
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -246,11 +354,19 @@ const forgotPassword = async (req, res) => {
 // @desc    Reset password
 // @route   POST /api/auth/reset-password
 const resetPassword = async (req, res) => {
-  const { token, newPassword } = req.body;
+  const { token, newPassword, confirmPassword } = req.body;
 
   try {
     if (!token || !newPassword) {
       return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
     // Find user with valid reset token
@@ -293,18 +409,42 @@ const getMe = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Calculate profile completeness
+    let profileCompleteness = 0;
+    if (user.userType === 'MANUFACTURER' || user.userType === 'HYBRID') {
+      let score = 0;
+      if (user.manufacturingTypes && user.manufacturingTypes.length > 0) score += 20;
+      if (user.maxDimensions && (user.maxDimensions.height > 0 || user.maxDimensions.width > 0 || user.maxDimensions.length > 0)) score += 20;
+      if (user.facilityPhotos && user.facilityPhotos.length > 0) score += 15;
+      if (user.primaryMaterials && user.primaryMaterials.length > 0) score += 15;
+      if (user.certifications && user.certifications.length > 0) score += 15;
+      if (user.gstNumber) score += 15;
+      profileCompleteness = score;
+    } else {
+      profileCompleteness = 100;
+    }
+
     return res.json({
       _id: user._id,
-      name: user.name,
+      title: user.title,
+      fullName: user.fullName,
       email: user.email,
-      role: user.role,
+      userType: user.userType,
+      companyName: user.companyName,
+      website: user.website,
       phoneNumber: user.phoneNumber || '',
       address: user.address || '',
       city: user.city || '',
       state: user.state || '',
-      pincode: user.pincode || '',
+      zipCode: user.zipCode || '',
+      country: user.country || 'India',
+      gstNumber: user.gstNumber || '',
       isEmailVerified: user.isEmailVerified,
-      wishlist: user.wishlist || []
+      status: user.status,
+      manufacturerStatus: user.manufacturerStatus,
+      profileCompleteness,
+      manufacturingTypes: user.manufacturingTypes || [],
+      certifications: user.certifications || []
     });
   } catch (error) {
     console.error('GetMe error:', error);
@@ -316,42 +456,57 @@ const getMe = async (req, res) => {
 // @route   PUT /api/auth/profile
 const updateProfile = async (req, res) => {
   try {
-    const { name, email, phoneNumber, address, city, state, pincode } = req.body;
-
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (email && email !== user.email) {
-      const emailExists = await User.findOne({ email });
-      if (emailExists) {
-        return res.status(400).json({ message: 'Email already in use' });
-      }
-      user.email = email;
-    }
+    // Update allowed fields
+    const allowedFields = [
+      'title', 'fullName', 'phoneNumber', 'companyName', 'website',
+      'address', 'city', 'state', 'zipCode', 'country', 'gstNumber',
+      'manufacturingTypes', 'companySize', 'yearsInBusiness', 'maxDimensions',
+      'primaryMaterials', 'certifications', 'industryVertical', 'annualSpending',
+      'procurementTeamSize', 'preferredLeadTime', 'facilityPhotos'
+    ];
 
-    user.name = name || user.name;
-    user.phoneNumber = phoneNumber || user.phoneNumber;
-    user.address = address || user.address;
-    user.city = city || user.city;
-    user.state = state || user.state;
-    user.pincode = pincode || user.pincode;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        user[field] = req.body[field];
+      }
+    });
 
     await user.save();
 
+    // Calculate profile completeness
+    let profileCompleteness = 0;
+    if (user.userType === 'MANUFACTURER' || user.userType === 'HYBRID') {
+      let score = 0;
+      if (user.manufacturingTypes && user.manufacturingTypes.length > 0) score += 20;
+      if (user.maxDimensions && (user.maxDimensions.height > 0 || user.maxDimensions.width > 0 || user.maxDimensions.length > 0)) score += 20;
+      if (user.facilityPhotos && user.facilityPhotos.length > 0) score += 15;
+      if (user.primaryMaterials && user.primaryMaterials.length > 0) score += 15;
+      if (user.certifications && user.certifications.length > 0) score += 15;
+      if (user.gstNumber) score += 15;
+      profileCompleteness = score;
+    } else {
+      profileCompleteness = 100;
+    }
+
     return res.json({
       _id: user._id,
-      name: user.name,
+      title: user.title,
+      fullName: user.fullName,
       email: user.email,
-      role: user.role,
+      userType: user.userType,
+      companyName: user.companyName,
       phoneNumber: user.phoneNumber || '',
       address: user.address || '',
       city: user.city || '',
       state: user.state || '',
-      pincode: user.pincode || '',
-      isEmailVerified: user.isEmailVerified,
-      wishlist: user.wishlist || [],
+      zipCode: user.zipCode || '',
+      country: user.country || 'India',
+      profileCompleteness,
       token: generateToken(user._id)
     });
   } catch (error) {

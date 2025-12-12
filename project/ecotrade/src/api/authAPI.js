@@ -25,21 +25,21 @@ export const resendVerificationEmail = async (email) => {
   return response.data;
 };
 
-export const forgotPassword = async (email) => {
+export const forgotPassword = async (emailData) => {
+  // Accept either string or object
+  const email = typeof emailData === 'string' ? emailData : emailData.email;
   const response = await axios.post(`${API_URL}/forgot-password`, { email });
   return response.data;
 };
 
-export const resetPassword = async (token, newPassword) => {
-  const response = await axios.post(`${API_URL}/reset-password`, { token, newPassword });
+export const resetPassword = async (token, newPassword, confirmPassword) => {
+  const response = await axios.post(`${API_URL}/reset-password`, { token, newPassword, confirmPassword });
   return response.data;
 };
 
-export const getMe = async (token) => {
-  const config = {
-    headers: { Authorization: `Bearer ${token}` }
-  };
-  const response = await axios.get(`${API_URL}/me`, config);
+export const getMe = async () => {
+  // Token will be automatically added by axios interceptor from localStorage
+  const response = await axios.get(`${API_URL}/me`);
   return response.data;
 };
 

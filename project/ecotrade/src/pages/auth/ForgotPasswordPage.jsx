@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CircleCheck as CheckCircle } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -13,6 +13,7 @@ import {
 } from '../../store/slices/authSlice';
 
 const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isLoading, error, successMessage } = useSelector((state) => state.auth);
   const { showSuccess, showError } = useToast();
@@ -75,6 +76,13 @@ const ForgotPasswordPage = () => {
         <div className="max-w-md mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 sm:p-8">
             <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <img 
+                  src="/indianet png.png" 
+                  alt="Enigma Logo" 
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
               <h1 className="text-2xl font-bold mb-2">
                 {emailSent ? 'Check Your Email' : 'Forgot Password?'}
               </h1>
@@ -152,13 +160,14 @@ const ForgotPasswordPage = () => {
             )}
 
             <div className="mt-8 text-center">
-              <Link
-                to="/login"
-                className="inline-flex items-center text-sm text-green-700 hover:text-emerald-600"
+              <button
+                onClick={() => navigate('/role-selection')}
+                className="inline-flex items-center text-sm font-medium hover:underline"
+                style={{ color: '#4881F8' }}
               >
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Back to Login
-              </Link>
+              </button>
             </div>
           </div>
         </div>

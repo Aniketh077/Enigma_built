@@ -1,27 +1,69 @@
 const express = require('express');
 const router = express.Router();
-const { upload, uploadToS3, getCloudFrontUrl } = require('../utils/s3Upload');
+const { upload, uploadLarge, uploadMedium, uploadDocument, uploadToS3, getCloudFrontUrl } = require('../utils/s3Upload');
 const { protect, admin } = require('../middlewares/auth');
 
-// @desc    Upload single image
+// @desc    Upload single file (image, STL, document)
 // @route   POST /api/upload/single
 // @access  Private
-router.post('/single', protect, upload.single('image'), async (req, res) => {
+router.post('/single', protect, async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    // Get file type from query or body (after multer processes it)
+    const fileType = req.query.type || 'image';
+    let uploadMiddleware;
+    
+    if (fileType === 'stl') {
+      uploadMiddleware = uploadLarge.single('file');
+    } else if (fileType === 'document') {
+      uploadMiddleware = uploadDocument.single('file');
+    } else if (fileType === 'extra') {
+      uploadMiddleware = uploadMedium.single('file');
+    } else {
+      uploadMiddleware = upload.single('file');
     }
 
-    const folder = req.query.folder || req.body.folder || 'images';
-    const s3Key = await uploadToS3(req.file, folder);
-    const cloudFrontUrl = getCloudFrontUrl(s3Key);
+    uploadMiddleware(req, res, async (err) => {
+      if (err) {
+        console.error('Multer error:', err);
+        return res.status(400).json({ message: err.message || 'File upload failed' });
+      }
 
-    res.json({
-      message: 'File uploaded successfully',
-      url: cloudFrontUrl,
-      key: s3Key,
-      size: req.file.size,
-      mimetype: req.file.mimetype
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // Determine folder based on file type (from query or body after multer)
+      const finalFileType = req.body.type || req.query.type || fileType;
+      let folder = req.query.folder || req.body.folder;
+      if (!folder) {
+        if (finalFileType === 'stl') {
+          folder = 'stl-files';
+        } else if (finalFileType === 'document') {
+          folder = 'documents';
+        } else {
+          folder = 'images';
+        }
+      }
+
+      try {
+        const s3Key = await uploadToS3(req.file, folder);
+        const cloudFrontUrl = getCloudFrontUrl(s3Key);
+
+        res.json({
+          success: true,
+          message: 'File uploaded successfully',
+          data: {
+            url: cloudFrontUrl,
+            key: s3Key,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+          },
+          url: cloudFrontUrl // For backward compatibility
+        });
+      } catch (s3Error) {
+        console.error('S3 upload error:', s3Error);
+        res.status(500).json({ message: 'Error uploading to S3', error: s3Error.message });
+      }
     });
   } catch (error) {
     console.error('Upload error:', error);

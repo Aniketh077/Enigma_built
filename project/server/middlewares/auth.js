@@ -16,7 +16,8 @@ const protect = async (req, res, next) => {
       }
 
       // For regular users, check if email is verified
-      if (user.role !== 'admin' && !user.isEmailVerified) {
+      // Note: Admin role check removed as we're not using admin for now
+      if (!user.isEmailVerified) {
         return res.status(401).json({ 
           message: 'Email not verified. Please verify your email to access this resource.',
           requiresVerification: true 

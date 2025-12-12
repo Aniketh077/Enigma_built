@@ -1,65 +1,195 @@
 const mongoose = require('mongoose');
 
-const cartItemSchema = new mongoose.Schema({
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    min: 1,
-    default: 1
-  },
-  addedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  // Basic Information
+  title: {
+    type: String,
+    enum: ['Mr', 'Mrs', 'Ms', 'Dr', ''],
+    default: ''
+  },
+  fullName: {
+    type: String,
+    required: true,
+    trim: true
+  },
   email: {
     type: String,
-    required: false,
-    sparse: true,
+    required: true,
+    unique: true,
+    lowercase: true,
     match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please add a valid email']
   },
-  password: { type: String, required: false },
+  password: {
+    type: String,
+    required: true,
+    minlength: 8
+  },
   phoneNumber: {
     type: String,
-    required: false,
-    sparse: true,
-    unique: true,
+    required: true,
     match: [/^[6-9]\d{9}$/, 'Please add a valid 10-digit Indian mobile number']
   },
-  isPhoneVerified: {
-    type: Boolean,
-    default: false
+  
+  // User Role
+  userType: {
+    type: String,
+    enum: ['BUYER', 'MANUFACTURER', 'HYBRID'],
+    required: true
   },
-  address: { type: String, required: false },
-  city: { type: String, required: false },
-  state: { type: String, required: false },
-  pincode: { 
-    type: String, 
-    required: false,
-    match: [/^[0-9]{5,6}$/, 'Please add a valid pincode']
+  
+  // Company Information
+  companyName: {
+    type: String,
+    required: true,
+    trim: true
   },
-  cart: {
-    items: [cartItemSchema],
-    updatedAt: {
-      type: Date,
-      default: Date.now
+  website: {
+    type: String,
+    default: ''
+  },
+  gstNumber: {
+    type: String,
+    default: ''
+  },
+  
+  // Address
+  address: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true
+  },
+  state: {
+    type: String,
+    required: true
+  },
+  zipCode: {
+    type: String,
+    required: true,
+    match: [/^[0-9]{5,6}$/, 'Please add a valid zip code']
+  },
+  country: {
+    type: String,
+    default: 'India'
+  },
+  
+  // Manufacturer Specific Fields
+  manufacturingTypes: [{
+    type: String,
+    enum: ['CNC', 'TURNING', 'MILLING', '3D_PRINTING', 'SHEET_METAL', 'DIE_CASTING', 'INJECTION_MOLDING', 'STAMPING', 'WELDING', 'ASSEMBLY', 'OTHER']
+  }],
+  companySize: {
+    type: String,
+    default: ''
+  },
+  yearsInBusiness: {
+    type: Number,
+    default: 0
+  },
+  facilityPhotos: [{
+    type: String // URLs to S3
+  }],
+  maxDimensions: {
+    height: { type: Number, default: 0 },
+    width: { type: Number, default: 0 },
+    length: { type: Number, default: 0 }
+  },
+  primaryMaterials: [{
+    type: String
+  }],
+  certifications: [{
+    type: String,
+    enum: ['ISO_9001', 'ISO_13485', 'AS9100', 'IATF_16949', 'ROHS', 'OTHER']
+  }],
+  manufacturerStatus: {
+    type: String,
+    enum: ['PENDING_REVIEW', 'ACTIVE', 'SUSPENDED'],
+    default: 'PENDING_REVIEW'
+  },
+  profileCompleteness: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  
+  // Buyer Specific Fields
+  industryVertical: {
+    type: String,
+    default: ''
+  },
+  annualSpending: {
+    type: String,
+    default: ''
+  },
+  procurementTeamSize: {
+    type: String,
+    default: ''
+  },
+  preferredLeadTime: {
+    type: String,
+    default: ''
+  },
+  
+  // Buyer Settings (Profile defaults)
+  buyerSettings: {
+    defaultCountry: { type: String, default: '' },
+    defaultRegion: { type: String, default: '' },
+    preferredCurrency: { type: String, default: 'USD' },
+    defaultIncoterms: { type: String, default: 'FOB' },
+    communicationLanguage: { type: String, default: 'English' },
+    savedShippingAddresses: [{
+      name: String,
+      address: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String,
+      isDefault: { type: Boolean, default: false }
+    }],
+    billingInfo: {
+      companyName: String,
+      taxId: String,
+      address: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String
     }
   },
-  wishlist: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product'
-  }],
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
   
-  // Email verification fields
+  // Manufacturer Settings (Profile)
+  manufacturerSettings: {
+    technologies: [{
+      type: String,
+      enum: ['CNC', 'TURNING', 'MILLING', '3D_PRINTING', 'SHEET_METAL', 'DIE_CASTING', 'INJECTION_MOLDING', 'STAMPING', 'WELDING', 'ASSEMBLY', 'OTHER']
+    }],
+    materials: [{
+      type: String
+    }],
+    partTypes: [{
+      type: String // Tags
+    }],
+    machinery: [{
+      type: String // Tags
+    }],
+    regionsServed: [{
+      type: String
+    }],
+    languages: [{
+      type: String
+    }]
+  },
+  
+  // Saved/Starred Manufacturers (for Buyers)
+  savedManufacturers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  
+  // Email Verification
   isEmailVerified: {
     type: Boolean,
     default: false
@@ -73,7 +203,7 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
-  // Password reset fields
+  // Password Reset
   passwordResetToken: {
     type: String,
     default: null
@@ -83,71 +213,38 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  // Account Status
+  status: {
+    type: String,
+    enum: ['ACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED'],
+    default: 'PENDING_VERIFICATION'
+  },
+  
+  // Timestamps
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 userSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
-  if (this.cart && this.cart.items && this.cart.items.length > 0) {
-    this.cart.updatedAt = Date.now();
-  }
   next();
 });
 
-// Method to add item to cart
-userSchema.methods.addToCart = function(productId, quantity = 1) {
-  const existingItemIndex = this.cart.items.findIndex(
-    item => item.productId.toString() === productId.toString()
-  );
-
-  if (existingItemIndex >= 0) {
-    this.cart.items[existingItemIndex].quantity += quantity;
-  } else {
-    this.cart.items.push({ productId, quantity });
-  }
-
-  this.cart.updatedAt = Date.now();
-  return this.save();
-};
-
-// Method to remove item from cart
-userSchema.methods.removeFromCart = function(productId) {
-  this.cart.items = this.cart.items.filter(
-    item => item.productId.toString() !== productId.toString()
-  );
-  this.cart.updatedAt = Date.now();
-  return this.save();
-};
-
-// Method to update item quantity in cart
-userSchema.methods.updateCartQuantity = function(productId, quantity) {
-  const item = this.cart.items.find(
-    item => item.productId.toString() === productId.toString()
-  );
-  
-  if (item) {
-    if (quantity <= 0) {
-      return this.removeFromCart(productId);
-    }
-    item.quantity = quantity;
-    this.cart.updatedAt = Date.now();
-    return this.save();
-  }
-  
-  throw new Error('Item not found in cart');
-};
-
-// Method to clear cart
-userSchema.methods.clearCart = function() {
-  this.cart.items = [];
-  this.cart.updatedAt = Date.now();
-  return this.save();
-};
-
-userSchema.methods.getPopulatedCart = async function() {
-  await this.populate('cart.items.productId');
-  return this.cart;
-};
+// Indexes for search
+userSchema.index({ companyName: 'text', fullName: 'text' }); // Text search
+userSchema.index({ userType: 1, manufacturerStatus: 1 });
+userSchema.index({ 'manufacturerSettings.technologies': 1 });
+userSchema.index({ 'manufacturerSettings.materials': 1 });
+userSchema.index({ 'manufacturerSettings.partTypes': 1 });
+userSchema.index({ 'manufacturerSettings.machinery': 1 });
+userSchema.index({ country: 1, region: 1 });
+userSchema.index({ certifications: 1 });
+userSchema.index({ companySize: 1 });
 
 module.exports = mongoose.model('User', userSchema);

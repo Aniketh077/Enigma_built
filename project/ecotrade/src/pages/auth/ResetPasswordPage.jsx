@@ -77,7 +77,8 @@ const ResetPasswordPage = () => {
   try {
     const result = await dispatch(resetPassword({
       token,
-      newPassword: formData.newPassword
+      newPassword: formData.newPassword,
+      confirmPassword: formData.confirmPassword
     }));
 
     if (resetPassword.fulfilled.match(result)) {
@@ -87,9 +88,7 @@ const ResetPasswordPage = () => {
       });
       setResetComplete(true);
       setTimeout(() => {
-        navigate('/login', {
-          state:null,
-        });
+        navigate('/role-selection');
       }, 3000);
     } else {
       dispatch({
@@ -127,6 +126,13 @@ useEffect(() => {
           <div className="max-w-md mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-6 sm:p-8">
               <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src="/indianet png.png" 
+                    alt="Enigma Logo" 
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
                 <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
                   <AlertCircle className="w-8 h-8 text-red-600" />
                 </div>
@@ -153,6 +159,13 @@ useEffect(() => {
         <div className="max-w-md mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 sm:p-8">
             <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <img 
+                  src="/indianet png.png" 
+                  alt="Enigma Logo" 
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <Lock className="w-8 h-8 text-green-600" />
               </div>
@@ -176,7 +189,7 @@ useEffect(() => {
                     Redirecting you to login page...
                   </p>
                 </div>
-                <Link to="/login">
+                <Link to="/role-selection">
                   <Button variant="primary">
                     Go to Login
                   </Button>
@@ -256,8 +269,9 @@ useEffect(() => {
 
             <div className="mt-8 text-center">
               <Link
-                to="/login"
-                className="text-sm text-green-700 hover:text-emerald-600"
+                to="/role-selection"
+                className="text-sm font-medium hover:underline"
+                style={{ color: '#4881F8' }}
               >
                 Back to Login
               </Link>

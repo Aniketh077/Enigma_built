@@ -57,8 +57,21 @@ export const deleteImage = async (imageUrl, token) => {
   return response.data;
 };
 
+export const uploadFile = async (formData) => {
+  // Get type from formData if it exists
+  const type = formData.get('type') || 'image';
+  
+  const response = await axios.post(`${API_URL}/single?type=${type}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
 export const uploadAPI = {
   uploadSingleImage,
   uploadMultipleImages,
-  deleteImage
+  deleteImage,
+  uploadFile
 };

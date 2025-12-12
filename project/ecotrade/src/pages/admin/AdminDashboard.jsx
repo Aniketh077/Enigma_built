@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Package, ShoppingCart, Users, LogOut, Menu, X, ChevronRight, Mail, MessageSquare, ChartBar as BarChart3, Hop as Home, ChevronLeft, Calendar, User, DollarSign, Eye, Grid2x2 as Grid, Tag, Briefcase } from 'lucide-react';
+import { Package, ShoppingCart, Users, LogOut, Menu, X, ChevronRight, Mail, MessageSquare, ChartBar as BarChart3, Hop as Home, ChevronLeft, Calendar, User, DollarSign, Eye, Grid2x2 as Grid, Tag, Briefcase, Store } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchDashboardStats, fetchAllUsers } from '../../store/slices/adminSlice';
 import AdminProducts from './AdminProducts/AdminProducts';
@@ -12,6 +12,7 @@ import AdminContactForm from './AdminContactForm/AdminContactForm';
 import AdminCollections from './AdminCollections';
 import AdminBrands from './AdminBrands';
 import AdminServiceRequests from './AdminServiceRequests';
+import AdminSellerRequests from './AdminSellerRequests';
 import Button from '../../components/ui/Button';
 import formatProductNames from  './AdminOrders/components/formatProductNames';
 
@@ -24,6 +25,7 @@ const AdminTab = {
   ORDERS: 'orders',
   CUSTOMERS: 'customers',
   SERVICES: 'services',
+  SELLER_REQUESTS: 'seller-requests',
   NEWSLETTER: 'newsletter',
   CONTACT: 'contact',
 };
@@ -115,6 +117,7 @@ const AdminDashboard = () => {
     { key: AdminTab.ORDERS, label: 'Orders', icon: ShoppingCart },
     { key: AdminTab.CUSTOMERS, label: 'Customers', icon: Users },
     { key: AdminTab.SERVICES, label: 'Service Requests', icon: Briefcase },
+    { key: AdminTab.SELLER_REQUESTS, label: 'Seller Requests', icon: Store },
     { key: AdminTab.NEWSLETTER, label: 'Newsletter', icon: Mail },
     { key: AdminTab.CONTACT, label: 'Contact Forms', icon: MessageSquare },
   ];
@@ -135,6 +138,8 @@ const AdminDashboard = () => {
         return <AdminCustomers />;
       case AdminTab.SERVICES:
         return <AdminServiceRequests />;
+      case AdminTab.SELLER_REQUESTS:
+        return <AdminSellerRequests />;
       case AdminTab.NEWSLETTER:
         return <AdminNewsletter />;
       case AdminTab.CONTACT:

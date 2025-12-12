@@ -19,6 +19,7 @@ import {
 import Button from "../ui/Button";
 import { fetchCollections } from "../../store/slices/collectionSlice";
 import { fetchCollections as fetchCollectionsWithTypes } from "../../store/slices/productSlice";
+import SellerModal from "../SellerModal/SellerModal";
 
 const Header = () => {
   const headerRef = useRef(null);
@@ -29,6 +30,7 @@ const Header = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuBreakpoint, setIsMobileMenuBreakpoint] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
   const menuCloseTimeoutRef = useRef(null);
 
   const { cart } = useCart();
@@ -387,6 +389,13 @@ const Header = () => {
   <p className="text-xs text-[#01374ae1]">Mon - Sat | 8am - 8pm</p>
 </div>
 
+             <button
+               onClick={() => setIsSellerModalOpen(true)}
+               className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors whitespace-nowrap"
+             >
+               Join as Seller
+             </button>
+
              <Link to="/wishlist" className="relative p-2 sm:p-3 text-[#01364a] hover:text-red-500 hover:bg-gray-100 rounded-md transition-colors" aria-label="Wishlist">
                 <Heart className="h-6 w-6" />
                 {user && (
@@ -643,6 +652,19 @@ const Header = () => {
                    Contact
                  </Link>
                </li>
+               <li className="px-4 py-3 border-t border-gray-200">
+                 <Button
+                   fullWidth
+                   onClick={() => {
+                     setIsSellerModalOpen(true);
+                     setIsMenuOpen(false);
+                   }}
+                   variant="primary"
+                   className="bg-green-600 hover:bg-green-700"
+                 >
+                   Join as Seller
+                 </Button>
+               </li>
                {!isAuthenticated ? (
                  <li className="px-4 py-3">
                    <div className="flex flex-col space-y-2">
@@ -695,6 +717,11 @@ const Header = () => {
              </ul>
            </div>
       )}
+
+      <SellerModal
+        isOpen={isSellerModalOpen}
+        onClose={() => setIsSellerModalOpen(false)}
+      />
     </header>
   );
 };

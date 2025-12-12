@@ -40,10 +40,15 @@ export const getMe = createAsyncThunk(
       }
       
       const userData = JSON.parse(storedUser);
-      const response = await authAPI.getMe(userData.token);
+      // Token will be automatically added by axios interceptor
+      const response = await authAPI.getMe();
+      // Preserve the token from localStorage
       return { ...response, token: userData.token };
     } catch (error) {
-      localStorage.removeItem('user');
+      // Only remove user if it's a 401 (unauthorized), not if it's a network error
+      if (error.response?.status === 401) {
+        localStorage.removeItem('user');
+      }
       return rejectWithValue({
         message: error.response?.data?.message || error.message || 'Failed to get user data'
       });
@@ -98,7 +103,8 @@ export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
   async (email, { rejectWithValue }) => {
     try {
-      const response = await authAPI.forgotPassword(email);
+      // Pass email as an object with email property
+      const response = await authAPI.forgotPassword({ email });
       return response;
     } catch (error) {
       return rejectWithValue({
@@ -110,9 +116,9 @@ export const forgotPassword = createAsyncThunk(
 
 export const resetPassword = createAsyncThunk(
   'auth/resetPassword',
-  async ({ token, newPassword }, { rejectWithValue }) => {
+  async ({ token, newPassword, confirmPassword }, { rejectWithValue }) => {
     try {
-      const response = await authAPI.resetPassword(token, newPassword);
+      const response = await authAPI.resetPassword(token, newPassword, confirmPassword);
       return response;
     } catch (error) {
       return rejectWithValue({

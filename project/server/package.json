@@ -1,7 +1,7 @@
 {
-  "name": "ecotrade-server",
+  "name": "enigma-server",
   "version": "1.0.0",
-  "description": "EcoTrade Backend API - Premium Refurbished Electronics",
+  "description": "Enigma Backend API - Next-Generation Manufacturing Procurement Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

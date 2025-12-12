@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const initializeAdmin = require('./middlewares/admin');
+// const { initializeAdmin } = require('./middlewares/admin'); // Admin not needed for now
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
@@ -19,6 +19,7 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const stockNotificationRoutes = require('./routes/stockNotificationRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const businessRoutes = require('./routes/businessRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
 
 
 const app = express();
@@ -73,8 +74,8 @@ if (!razorpay) {
   console.log('✅ Razorpay configured successfully');
 }
 
-// Initialize admin
-initializeAdmin();
+// Initialize admin - commented out as not needed
+// initializeAdmin();
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -99,23 +100,16 @@ if (isDevelopment) {
   });
 }
 
-// Routes
+// Routes - Enigma API
 app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/admin', userRoutes);
-app.use('/api/newsletter', newsletterRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/collections', collectionRoutes);
-app.use('/api/sell', sellRoutes);
-app.use('/api/repair', repairRoutes);
-app.use('/api/recycle', recycleRoutes);
-app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/stock-notifications', stockNotificationRoutes);
-app.use('/api/otp', otpRoutes);
-app.use('/api/business', businessRoutes); 
+app.use('/api/rfqs', require('./routes/rfqRoutes'));
+app.use('/api/invitations', require('./routes/invitationRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/ratings', require('./routes/ratingRoutes'));
+app.use('/api/users', userRoutes);
+app.use('/api/search', require('./routes/searchRoutes'));
+// Keep upload route for file uploads
+app.use('/api/upload', uploadRoutes); 
 
 // Health check route with environment info
 app.get('/api/health', (req, res) => {
@@ -131,16 +125,13 @@ app.get('/api/health', (req, res) => {
 // Root route
 app.get('/', (req, res) => {
   res.json({
-    message: 'Reeown API Server - Premium Refurbished Electronics',
+    message: 'Enigma API Server - Next-Generation Manufacturing Procurement Platform',
     environment: process.env.NODE_ENV || 'development',
     status: 'running',
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',
-      products: '/api/products',
-      cart: '/api/cart',
-      orders: '/api/orders',
-      admin: '/api/admin',
+      upload: '/api/upload',
     }
   });
 });

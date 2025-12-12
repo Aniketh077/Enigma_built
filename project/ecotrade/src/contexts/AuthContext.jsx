@@ -41,6 +41,13 @@ export const AuthProvider = ({ children }) => {
       const result = await dispatch(loginUser(credentials));
       
       if (loginUser.fulfilled.match(result)) {
+        // User data is already stored in localStorage by authAPI.login
+        // Refresh user data from server to ensure consistency
+        try {
+          await dispatch(getMe());
+        } catch (err) {
+          console.error('Error refreshing user data after login:', err);
+        }
         return { success: true, user: result.payload };
       } else if (loginUser.rejected.match(result)) {
         return { 
@@ -87,6 +94,15 @@ export const AuthProvider = ({ children }) => {
     dispatch(clearError());
   };
 
+  const updateUser = async (userData) => {
+    try {
+      // Refresh user data from server
+      await dispatch(getMe());
+    } catch (error) {
+      console.error('Error updating user data:', error);
+    }
+  };
+
   const isAdmin = user?.role === 'admin';
 
   const value = {
@@ -99,7 +115,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    clearAuthError
+    clearAuthError,
+    updateUser
   };
 
   return (

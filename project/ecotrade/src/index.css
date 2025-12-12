@@ -6,21 +6,15 @@
   :root {
     /* Header height variable used to offset fixed header from page content */
     --header-height: 72px; /* safe default, will be updated by Header component on mount/resize */
-    /* Professional Green Color Palette */
-    --color-primary: 22 163 74;      /* green-600 */
-    --color-primary-dark: 21 128 61; /* green-700 */
-    --color-primary-light: 134 239 172; /* green-300 */
-    --color-secondary: 16 185 129;   /* emerald-500 */
-    --color-accent: 34 197 94;       /* green-500 */
-    --color-success: 34 197 94;      /* green-500 */
+    /* Enigma Color Palette - White, Black, #4881F8 */
+    --color-primary: 72 129 248;      /* #4881F8 - Enigma Blue */
+    --color-primary-dark: 56 99 200; /* darker blue */
+    --color-primary-light: 147 179 255; /* lighter blue */
+    --color-secondary: 0 0 0;        /* black */
+    --color-accent: 72 129 248;      /* #4881F8 */
+    --color-success: 34 197 94;       /* green-500 */
     --color-warning: 251 146 60;     /* orange-400 */
     --color-error: 239 68 68;        /* red-500 */
-
-    /* Condition badges with green theme */
-    --color-like-new: 34 197 94;     /* green-500 */
-    --color-excellent: 22 163 74;    /* green-600 */
-    --color-good: 74 222 128;        /* green-400 */
-    --color-fair: 251 146 60;        /* orange-400 */
   }
 
   html {
@@ -43,15 +37,15 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, rgb(22 163 74) 0%, rgb(34 197 94) 100%);
+    background: linear-gradient(135deg, #4881F8 0%, #3b6fe0 100%);
   }
 
   .gradient-accent {
-    background: linear-gradient(135deg, rgb(16 185 129) 0%, rgb(5 150 105) 100%);
+    background: linear-gradient(135deg, #4881F8 0%, #2d5bc7 100%);
   }
 
-  .gradient-green {
-    background: linear-gradient(135deg, rgb(34 197 94) 0%, rgb(74 222 128) 100%);
+  .gradient-blue {
+    background: linear-gradient(135deg, #4881F8 0%, #5a9aff 100%);
   }
 
   .glass-effect {
@@ -70,6 +64,48 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Custom scrollbar for sidebar (dark) */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  /* Dark scrollbar for sidebar */
+  .bg-black .scrollbar-thin {
+    scrollbar-color: #4b5563 #1f2937;
+  }
+  .bg-black .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .bg-black .scrollbar-thin::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+  .bg-black .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 3px;
+  }
+  .bg-black .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #6b7280;
+  }
+  
+  /* Light scrollbar for main content */
+  .bg-white .scrollbar-thin {
+    scrollbar-color: #d1d5db #f3f4f6;
+  }
+  .bg-white .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+  }
+  .bg-white .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 4px;
+  }
+  .bg-white .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 4px;
+  }
+  .bg-white .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
   }
 
   @keyframes fadeIn {
