@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { searchAPI } from '../api/searchAPI';
 import { useToast } from '../contexts/ToastContext';
 import { Search, Filter, FileText, MapPin, Calendar, Eye } from 'lucide-react';
+import STLViewer from '../components/STLViewer';
 
 const RFQPoolPage = () => {
   const navigate = useNavigate();
@@ -300,58 +301,73 @@ const RFQPoolPage = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             {rfqs.map((rfq) => (
-              <Link
+              <div
                 key={rfq._id}
-                to={`/rfqs-pool/${rfq._id}`}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:border-[#4881F8] hover:shadow-md transition-all"
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#4881F8] hover:shadow-md transition-all"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex-1">{rfq.title}</h3>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  {rfq.workpieces?.[0] && (
-                    <>
-                      {rfq.workpieces[0].partType && (
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Part Type:</span> {rfq.workpieces[0].partType}
-                        </div>
-                      )}
-                      <div className="flex items-center text-sm text-gray-600">
-                        <FileText size={16} className="mr-2" />
-                        {rfq.workpieces[0].technology?.replace('_', ' ')} • {rfq.workpieces[0].material}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin size={16} className="mr-2" />
-                        {rfq.country} {rfq.region && `• ${rfq.region}`}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar size={16} className="mr-2" />
-                        Deadline: {new Date(rfq.rfqDeadline).toLocaleDateString()}
-                      </div>
-                      {rfq.workpieces[0].dimensions && (
-                        <div className="text-sm text-gray-600">
-                          Dimensions: {rfq.workpieces[0].dimensions.length} × {rfq.workpieces[0].dimensions.width} × {rfq.workpieces[0].dimensions.height} mm
-                          {rfq.workpieces[0].dimensions.diameter > 0 && ` (D: ${rfq.workpieces[0].dimensions.diameter}mm)`}
-                        </div>
-                      )}
-                      <div className="text-sm text-gray-600">
-                        Quantity: {rfq.workpieces[0].quantity}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <span className="text-xs text-gray-500">
-                    RFQ #{rfq._id.toString().slice(-6)}
-                  </span>
-                  <div className="flex items-center text-[#4881F8] text-sm">
-                    View Details
-                    <Eye size={16} className="ml-1" />
+                {/* 3D Preview */}
+                {rfq.workpieces?.[0]?.mainFile && (
+                  <div className="border-b border-gray-200 bg-gray-50">
+                    <STLViewer
+                      fileUrl={rfq.workpieces[0].mainFile}
+                      height="200px"
+                      backgroundColor="#f9fafb"
+                    />
                   </div>
-                </div>
-              </Link>
+                )}
+
+                <Link
+                  to={`/rfqs-pool/${rfq._id}`}
+                  className="block p-6"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex-1">{rfq.title}</h3>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    {rfq.workpieces?.[0] && (
+                      <>
+                        {rfq.workpieces[0].partType && (
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Part Type:</span> {rfq.workpieces[0].partType}
+                          </div>
+                        )}
+                        <div className="flex items-center text-sm text-gray-600">
+                          <FileText size={16} className="mr-2" />
+                          {rfq.workpieces[0].technology?.replace('_', ' ')} • {rfq.workpieces[0].material}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin size={16} className="mr-2" />
+                          {rfq.country} {rfq.region && `• ${rfq.region}`}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar size={16} className="mr-2" />
+                          Deadline: {new Date(rfq.rfqDeadline).toLocaleDateString()}
+                        </div>
+                        {rfq.workpieces[0].dimensions && (
+                          <div className="text-sm text-gray-600">
+                            Dimensions: {rfq.workpieces[0].dimensions.length} × {rfq.workpieces[0].dimensions.width} × {rfq.workpieces[0].dimensions.height} mm
+                            {rfq.workpieces[0].dimensions.diameter > 0 && ` (D: ${rfq.workpieces[0].dimensions.diameter}mm)`}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-600">
+                          Quantity: {rfq.workpieces[0].quantity}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <span className="text-xs text-gray-500">
+                      RFQ #{rfq._id.toString().slice(-6)}
+                    </span>
+                    <div className="flex items-center text-[#4881F8] text-sm">
+                      View Details
+                      <Eye size={16} className="ml-1" />
+                    </div>
+                  </div>
+                </Link>
+              </div>
             ))}
           </div>
 
