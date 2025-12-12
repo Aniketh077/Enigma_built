@@ -17,6 +17,10 @@ const STLViewer = ({ fileUrl, width = '100%', height = '400px', backgroundColor 
   useEffect(() => {
     if (!mountRef.current || !fileUrl) return;
 
+    // Use proxy endpoint to bypass CORS issues
+    const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const proxyUrl = `${API_BASE}/api/upload/proxy-stl?url=${encodeURIComponent(fileUrl)}`;
+
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(backgroundColor);
@@ -59,9 +63,9 @@ const STLViewer = ({ fileUrl, width = '100%', height = '400px', backgroundColor 
     controls.enablePan = true;
     controlsRef.current = controls;
 
-    // Load STL file - use loader directly (handles CORS better than fetch)
+    // Load STL file using proxy to bypass CORS
     const loader = new STLLoader();
-    
+
     const processGeometry = (geometry) => {
       // Calculate center and scale
       geometry.computeVertexNormals();
@@ -96,11 +100,14 @@ const STLViewer = ({ fileUrl, width = '100%', height = '400px', backgroundColor 
 
       setLoading(false);
     };
-    
-    // Use STL loader directly (it handles CORS better)
+
+    // Load STL via proxy endpoint
+    console.log('Loading STL file via proxy:', proxyUrl);
+
     loader.load(
-      fileUrl,
+      proxyUrl,
       (geometry) => {
+        console.log('STL file loaded successfully');
         processGeometry(geometry);
       },
       (progress) => {
@@ -112,7 +119,9 @@ const STLViewer = ({ fileUrl, width = '100%', height = '400px', backgroundColor 
       },
       (error) => {
         console.error('STL loader error:', error);
-        setError('Failed to load STL file. The file may be corrupted or inaccessible.');
+        console.error('Failed proxy URL:', proxyUrl);
+        console.error('Original file URL:', fileUrl);
+        setError('Failed to load 3D model. Please check your connection and try again.');
         setLoading(false);
       }
     );

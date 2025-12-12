@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upload, uploadLarge, uploadMedium, uploadDocument, uploadToS3, getCloudFrontUrl } = require('../utils/s3Upload');
 const { protect, admin } = require('../middlewares/auth');
+const axios = require('axios');
 
 // @desc    Upload single file (image, STL, document)
 // @route   POST /api/upload/single
@@ -11,7 +12,7 @@ router.post('/single', protect, async (req, res) => {
     // Get file type from query or body (after multer processes it)
     const fileType = req.query.type || 'image';
     let uploadMiddleware;
-    
+
     if (fileType === 'stl') {
       uploadMiddleware = uploadLarge.single('file');
     } else if (fileType === 'document') {
@@ -19,7 +20,11 @@ router.post('/single', protect, async (req, res) => {
     } else if (fileType === 'extra') {
       uploadMiddleware = uploadMedium.single('file');
     } else {
-      uploadMiddleware = upload.single('file');
+      // For images, accept both 'file' and 'image' field names
+      uploadMiddleware = upload.fields([
+        { name: 'file', maxCount: 1 },
+        { name: 'image', maxCount: 1 }
+      ]);
     }
 
     uploadMiddleware(req, res, async (err) => {
@@ -28,9 +33,20 @@ router.post('/single', protect, async (req, res) => {
         return res.status(400).json({ message: err.message || 'File upload failed' });
       }
 
-      if (!req.file) {
+      // Handle both single file and fields scenarios
+      let file;
+      if (req.file) {
+        file = req.file;
+      } else if (req.files) {
+        file = req.files.file ? req.files.file[0] : req.files.image ? req.files.image[0] : null;
+      }
+
+      if (!file) {
         return res.status(400).json({ message: 'No file uploaded' });
       }
+
+      // Store the file in req.file for consistency
+      req.file = file;
 
       // Determine folder based on file type (from query or body after multer)
       const finalFileType = req.body.type || req.query.type || fileType;
@@ -165,7 +181,7 @@ router.post('/type', protect, admin, (req, res, next) => {
     }
 
     const cloudFrontUrl = getCloudFrontUrl(req.file.key);
-    
+
     res.json({
       message: 'type logo uploaded successfully',
       logo: cloudFrontUrl
@@ -174,6 +190,76 @@ router.post('/type', protect, admin, (req, res, next) => {
     console.error('Upload error:', error);
     res.status(500).json({ message: 'Error uploading type logo' });
   }
+});
+
+// @desc    Proxy STL files to bypass CORS
+// @route   GET /api/upload/proxy-stl
+// @access  Public (but should only be used for STL viewing)
+router.get('/proxy-stl', async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({ message: 'URL parameter is required' });
+    }
+
+    // Decode URL in case it's double-encoded
+    const decodedUrl = decodeURIComponent(url);
+
+    // Validate that the URL is from our CloudFront domain or contains stl-files path
+    const cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
+    if (cloudFrontDomain && !decodedUrl.startsWith(cloudFrontDomain) && !decodedUrl.includes('stl-files')) {
+      console.log('Invalid STL URL:', decodedUrl);
+      return res.status(403).json({ message: 'Invalid URL - must be from CloudFront domain' });
+    }
+
+    console.log('Proxying STL file from:', decodedUrl);
+
+    // Fetch the file from S3/CloudFront
+    const response = await axios.get(decodedUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'Accept': 'application/octet-stream, model/stl, */*'
+      },
+      timeout: 30000
+    });
+
+    // Set appropriate headers with CORS support
+    res.set({
+      'Content-Type': response.headers['content-type'] || 'application/octet-stream',
+      'Content-Length': response.headers['content-length'],
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range',
+      'Cache-Control': 'public, max-age=86400',
+      'Accept-Ranges': 'bytes'
+    });
+
+    // Send the file data
+    res.send(Buffer.from(response.data));
+  } catch (error) {
+    console.error('Proxy STL error:', error.message);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    res.status(500).json({
+      message: 'Error proxying STL file',
+      error: error.message,
+      details: error.response ? `HTTP ${error.response.status}` : 'Network error'
+    });
+  }
+});
+
+// Handle OPTIONS request for CORS preflight
+router.options('/proxy-stl', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range',
+    'Access-Control-Max-Age': '86400'
+  });
+  res.status(204).send();
 });
 
 module.exports = router;
