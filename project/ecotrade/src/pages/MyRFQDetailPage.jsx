@@ -253,10 +253,10 @@ const MyRFQDetailPage = () => {
             {rfq.workpieces?.map((workpiece, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4">Workpiece {index + 1}</h3>
-                {workpiece.mainFileUrl ? (
+                {workpiece.mainFile ? (
                   <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden">
-                    <STLViewer 
-                      fileUrl={workpiece.mainFileUrl} 
+                    <STLViewer
+                      fileUrl={workpiece.mainFile}
                       height="400px"
                       backgroundColor="#f9fafb"
                     />

@@ -187,10 +187,10 @@ const RFQDetailPage = () => {
                 <h3 className="text-lg font-semibold mb-4">Workpiece {index + 1}</h3>
                 
                 {/* Three.js STL Viewer */}
-                {workpiece.mainFileUrl ? (
+                {workpiece.mainFile ? (
                   <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden">
-                    <STLViewer 
-                      fileUrl={workpiece.mainFileUrl} 
+                    <STLViewer
+                      fileUrl={workpiece.mainFile}
                       height="400px"
                       backgroundColor="#f9fafb"
                     />
